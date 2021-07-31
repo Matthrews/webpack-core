@@ -1,0 +1,1 @@
+{"code": "function(require, module, exports){var b = require('./b.js');exports.default = 'a';}"}
