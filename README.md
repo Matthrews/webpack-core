@@ -385,3 +385,33 @@ export default b3
   }
 }
 ```
+
+- 嵌套依赖`project_3`
+
+```js
+// project_3/index.js
+import a from './a.js'
+import b from './b.js'
+
+console.log(a.value + b.value)
+
+// project_3/a.js
+import b from './b.js'
+
+const a = {
+  value: b.value + 1
+}
+export default a
+
+// project_3/b.js
+import a from './a.js'
+
+const b = {
+  value: a.value + 1
+}
+export default b
+
+// deps_3.ts同deps_2.ts
+```
+
+执行`node -r ts-node/register deps_3.ts`报错`RangeError: Maximum call stack size exceeded`说明出现了循环嵌套
