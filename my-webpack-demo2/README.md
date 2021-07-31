@@ -300,4 +300,10 @@ function getProjectPath(path: string) {
 
 - 解决上述第二个问题
 
+  - 把 code 字符串外面包一个 `function(require, module, exports){...}`
+
+  - 执行`node project_2/string_code_to_function.js`把`{code: ${code2}}`写到文件`project_2/result_fun.json`里
+
+  - 最终文件里面的 code 就是函数, 代码参见`project_2`
+
 2. 打包后的文件会是什么样子的？
