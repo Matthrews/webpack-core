@@ -212,3 +212,176 @@ console.log(a.value + b.value)
   }
 }
 ```
+
+- 嵌套依赖`project_2`
+  目录结构如图：
+  ![文件目录](https://cdn.jsdelivr.net/gh/Matthrews/zm_cdn/images/webpack-3.png)
+
+```js
+// deps_2.ts
+// 请确保你的 Node 版本大于等于 14
+// 请先运行 yarn 或 npm i 来安装依赖
+// 然后使用 node -r ts-node/register 文件路径 来运行，
+// 如果需要调试，可以加一个选项 --inspect-brk，再打开 Chrome 开发者工具，点击 Node 图标即可调试
+import { parse } from '@babel/parser'
+import traverse from '@babel/traverse'
+import { readFileSync } from 'fs'
+import { resolve, relative, dirname } from 'path'
+
+// 设置根目录
+const projectRoot = resolve(__dirname, 'project_2')
+// 类型声明
+type DepRelation = { [key: string]: { deps: string[], code: string } }
+// 初始化一个空的 depRelation，用于收集依赖
+const depRelation: DepRelation = {}
+
+// 将入口文件的绝对路径传入函数，如 D:\demo\fixture_1\index.js
+collectCodeAndDeps(resolve(projectRoot, 'index.js'))
+
+console.log(depRelation)
+console.log('done')
+
+function collectCodeAndDeps(filepath: string) {
+  const key = getProjectPath(filepath) // 文件的项目路径，如 index.js
+  // 获取文件内容，将内容放至 depRelation
+  const code = readFileSync(filepath).toString()
+  // 初始化 depRelation[key]
+  depRelation[key] = { deps: [], code: code }
+  // 将代码转为 AST
+  const ast = parse(code, { sourceType: 'module' })
+  // 分析文件依赖，将内容放至 depRelation
+  traverse(ast, {
+    enter: path => {
+      if (path.node.type === 'ImportDeclaration') {
+        // path.node.source.value 往往是一个相对路径，如 ./a.js，需要先把它转为一个绝对路径
+        const depAbsolutePath = resolve(dirname(filepath), path.node.source.value)
+        // 然后转为项目路径
+        const depProjectPath = getProjectPath(depAbsolutePath)
+        // 把依赖写进 depRelation
+        depRelation[key].deps.push(depProjectPath)
+
+        // Note: 相比于deps_1.ts只加了一行代码  继续往下分析  递归
+        collectCodeAndDeps(depAbsolutePath)
+      }
+    }
+  })
+}
+
+// 获取文件相对于根目录的相对路径
+function getProjectPath(path: string) {
+  return relative(projectRoot, path).replace(/\\/g, '/')
+}
+
+// project_2/index.js
+import a from './a.js'
+import b from './b.js'
+
+console.log(a.value + b.value)
+
+// project_2/a.js
+import a2 from './dir/a2.js'
+const a = {
+  value: 1,
+  value2: a2
+}
+export default a
+
+// project_2/b.js
+import b2 from './dir/b2.js'
+
+const b = {
+  value: 2,
+  value2: b2
+}
+export default b
+
+// project_2/dir/a2.js
+import a3 from './dir_in_dir/a3.js'
+const a2 = {
+  value: 12,
+  value3: a3
+}
+export default a2
+
+// project_2/dir/b2.js
+import b3 from './dir_in_dir/b3.js'
+
+const b2 = {
+  value: 22,
+  value3: b3
+}
+export default b2
+
+// project_2/dir/dir_in_dir/a3.js
+const a3 = {
+  value: 123
+}
+export default a3
+
+// project_2/dir/dir_in_dir/b3.js
+const b3 = {
+  value: 123
+}
+export default b3
+
+```
+
+执行`node -r ts-node/register deps_2.ts`结果输出如下：
+
+```js
+{
+  'index.js': {
+    deps: [ 'a.js', 'b.js' ],
+    code: "import a from './a.js'\r\n" +
+      "import b from './b.js'\r\n" +
+      '\r\n' +
+      'console.log(a.value + b.value)'
+  },
+  'a.js': {
+    deps: [ 'dir/a2.js' ],
+    code: "import a2 from './dir/a2.js'\r\n" +
+      'const a = {\r\n' +
+      '  value: 1,\r\n' +
+      '  value2: a2\r\n' +
+      '}\r\n' +
+      'export default a'
+  },
+  'dir/a2.js': {
+    deps: [ 'dir/dir_in_dir/a3.js' ],
+    code: "import a3 from './dir_in_dir/a3.js'\r\n" +
+      'const a2 = {\r\n' +
+      '  value: 12,\r\n' +
+      '  value3: a3\r\n' +
+      '}\r\n' +
+      'export default a2'
+  },
+  'dir/dir_in_dir/a3.js': {
+    deps: [],
+    code: 'const a3 = {\r\n  value: 123\r\n}\r\nexport default a3'
+  },
+  'b.js': {
+    deps: [ 'dir/b2.js' ],
+    code: "import b2 from './dir/b2.js'\r\n" +
+      '\r\n' +
+      'const b = {\r\n' +
+      '  value: 2,\r\n' +
+      '  value2: b2\r\n' +
+      '}\r\n' +
+      'export default b'
+  },
+  'dir/b2.js': {
+    deps: [ 'dir/dir_in_dir/b3.js' ],
+    code: "import b3 from './dir_in_dir/b3.js'\r\n" +
+      '\r\n' +
+      'const b2 = {\r\n' +
+      '  value: 22,\r\n' +
+      '  value3: b3\r\n' +
+      '}\r\n' +
+      'export default b2'
+  },
+  'dir/dir_in_dir/b3.js': {
+    deps: [],
+    code: 'const b3 = {\r\n  value: 123\r\n}\r\nexport default b3'
+  }
+}
+```
