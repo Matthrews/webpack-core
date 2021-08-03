@@ -547,3 +547,14 @@ function addStyle(obj, options) {
 我们可以新建一个 demo 调试一下源码，进一步验证
 
 ## loader 面试题
+
+- Webpack 的 loader 是什么？
+  1. webpack 自带的打包器只能支持 JS 文件
+  2. 当我们想要加载 `css/less/scss/stylus/ts/md` 文件时，就需要用 loader
+  3. loader 的原理就是把文件内容包装成能运行的 JS
+     比如: 加载 css 需要用到 `style-loader` 和 `css-loader`
+     `css-loader` 把代码从 CSS 代码变成 export default str 形式的 JS 代码
+     `style-loader` 把代码挂载到 head 里的 style 标签里
+  4. 实力允许的话可以深入讲一下 `style-loader` 用到了 `pitch` 钩子和 `request` 对象
+  5. loader 和 plugin 的区别，执行顺序等
+  6. 写过 loader 可以讲一下思路
